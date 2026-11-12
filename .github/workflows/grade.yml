@@ -1,0 +1,51 @@
+name: CHESSCORE official practice grade
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  grade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run make.fun Python 3.13 Docker grader
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl -fSL --retry 3 --connect-timeout 15 --max-time 120 \
+            https://make.fun/c/tiny-chess-01/kit -o /tmp/chess-kit.tar.gz
+          mkdir -p /tmp/chess-kit
+          tar -xzf /tmp/chess-kit.tar.gz -C /tmp/chess-kit
+          test -f /tmp/chess-kit/tiny-chess-01-kit/cli/makefun.mjs
+          docker info >/dev/null
+          set +e
+          node /tmp/chess-kit/tiny-chess-01-kit/cli/makefun.mjs grade-local \
+            --kit /tmp/chess-kit/tiny-chess-01-kit \
+            --bot "$GITHUB_WORKSPACE" \
+            --driver docker --worktree --instances 1 \
+            --save /tmp/chess-grade > /tmp/chess-grade.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/chess-grade.log
+          {
+            echo "## CHESSCORE practice"
+            echo "Exit code: $rc"
+            echo '```text'
+            tail -n 80 /tmp/chess-grade.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chesscore-practice
+          path: |
+            /tmp/chess-grade.log
+            /tmp/chess-grade
+          if-no-files-found: warn

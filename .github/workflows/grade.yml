@@ -24,6 +24,9 @@ jobs:
           tar -xzf /tmp/chess-kit.tar.gz -C /tmp/chess-kit
           test -f /tmp/chess-kit/tiny-chess-01-kit/cli/makefun.mjs
           docker info >/dev/null
+          # Preload the competition's exact Python 3.13 image.
+          docker pull 'python@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962'
+          docker image inspect 'python@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962' >/dev/null
           set +e
           node /tmp/chess-kit/tiny-chess-01-kit/cli/makefun.mjs grade-local \
             --kit /tmp/chess-kit/tiny-chess-01-kit \
